@@ -1868,3 +1868,9 @@ config INTELLI_PLUG
 	default n
 	help
 	  Generic Intelli-plug cpu hotplug driver for ARM SOCs
+
+config CHARGE_LEVEL
+        bool "Charge level interface"
+        default y
+        help
+          Allows configuration of ac and usb charging levels
