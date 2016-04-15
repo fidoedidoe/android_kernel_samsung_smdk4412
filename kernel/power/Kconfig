@@ -343,9 +343,16 @@ config CPU_PM
 	bool
 	depends on SUSPEND || CPU_IDLE
 
-config SPEEDUP_KEYRESUME
-	bool "Speed up late resume"
-	depends on SUSPEND
+config EARLY_SUSPEND_DELAY
+	bool "Delay fbearlysuspend to allow CRT off animation to be displayed (yank555.lu)"
 	default y
 	---help---
-	  Speed up system resume
+	  A simple sysfs interface to user customizable
+	  pause to allow CRT off animation to be shown.
+
+config SPEEDUP_KEYRESUME
+        bool "Speed up late resume"
+        depends on SUSPEND
+        default y
+        ---help---
+          Speed up system resume
