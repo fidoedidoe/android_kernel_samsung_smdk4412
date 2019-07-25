@@ -24,7 +24,7 @@
 #include <linux/ctype.h>
 #include <linux/module.h>
 #include <linux/memcopy.h>
-`
+
 #ifndef __HAVE_ARCH_STRNICMP
 /**
  * strnicmp - Case insensitive, length-limited string comparison
