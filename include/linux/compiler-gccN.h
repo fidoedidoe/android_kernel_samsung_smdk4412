@@ -121,7 +121,9 @@
 
 #endif	/* gcc version >= 40000 specific checks */
 
+/*
 #ifndef OPTIMIZER_HIDE_VAR
 #define OPTIMIZER_HIDE_VAR(var) __asm__ ("" : "=r" (var) : "0" (var))
 #endif
+*/
 
