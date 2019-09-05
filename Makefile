@@ -382,8 +382,6 @@ KBUILD_CFLAGS_KERNEL := $(KERNELFLAGS)
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
 KBUILD_AFLAGS   := -D__ASSEMBLY__
-#KBUILD_AFLAGS_MODULE  := -DMODULE
-#KBUILD_CFLAGS_MODULE  := -DMODULE
 KBUILD_AFLAGS_MODULE  := $(MODFLAGS)
 KBUILD_CFLAGS_MODULE  := $(MODFLAGS)
 KBUILD_LDFLAGS_MODULE := -T $(srctree)/scripts/module-common.lds
@@ -581,7 +579,7 @@ KBUILD_CFLAGS	+= -fdiagnostics-show-option -Werror \
 		   -Wno-error=unused-function \
 		   -Wno-error=unused-variable \
 		   -Wno-error=unused-value \
-		   -Wno-error=unused-label
+		   -Wno-error=unused-label \
 		   -Wno-error=unused
 endif
 
