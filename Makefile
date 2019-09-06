@@ -248,7 +248,7 @@ GRAPHITE = -fgraphite -fgraphite-identity -floop-interchange -ftree-loop-distrib
 HOSTCC       = gcc
 HOSTCXX      = g++
 HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -Ofast -fomit-frame-pointer -pipe -DNDEBUG -fgcse-las $(GRAPHITE)
-HOSTCXXFLAGS = -pipe -DNDEBUG -Ofast -fgcse-las -fgcse-lm -fgcse-sm -fsched-spec-load -fforce-addr -fsingle-precision-constant -mtune=cortex-a9 -marm -mfpu=neon -march=armv7-a -ftree-vectorize -mvectorize-with-neon-quad $(GRAPHITE)
+HOSTCXXFLAGS = -pipe -DNDEBUG -Ofast -fgcse-las -fgcse-lm -fgcse-sm -fsched-spec-load -fforce-addr -fsingle-precision-constant -mcpu=cortex-a9 -mtune=cortex-a9 -marm -mfpu=neon -ftree-vectorize -mvectorize-with-neon-quad -funsafe-math-optimization $(GRAPHITE)
 
 # Decide whether to build built-in, modular, or both.
 # Normally, just do built-in.
@@ -349,7 +349,7 @@ CHECK		= sparse
 
 CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
 		  -Wbitwise -Wno-return-void $(CF)
-KERNELFLAGS	= -pipe -DNDEBUG -Ofast -fno-schedule-insns2 -mtune=cortex-a9 -march=armv7-a -mfpu=neon -marm -mno-unaligned-access -frename-registers -fforce-addr -funroll-loops -fsection-anchors -fforce-addr -ftree-loop-im -funswitch-loops -ftree-loop-ivcanon -funswitch-loops -funsafe-loop-optimizations -Wno-error=unused-but-set-variable -Wno-error=maybe-uninitialized -floop-flatten -fgcse-after-reload -fgcse-las -fgcse-sm -ftree-vectorize $(GRAPHITE)
+KERNELFLAGS	= -pipe -DNDEBUG -Ofast -fno-schedule-insns2 -mcpu=cortex-a9 -mtune=cortex-a9 -mfpu=neon -marm -mno-unaligned-access -frename-registers -fforce-addr -funroll-loops -fsection-anchors -fforce-addr -ftree-loop-im -funswitch-loops -ftree-loop-ivcanon -funswitch-loops -funsafe-loop-optimizations -Wno-error=unused-but-set-variable -Wno-error=maybe-uninitialized -floop-flatten -fgcse-after-reload -fgcse-las -fgcse-sm -ftree-vectorize -funsafe-math-optimizations $(GRAPHITE)
 MODFLAGS	= 	-DMODULE $(KERNELFLAGS)
 CFLAGS_MODULE   = $(MODFLAGS)
 AFLAGS_MODULE   = $(MODFLAGS)
