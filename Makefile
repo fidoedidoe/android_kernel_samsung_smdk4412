@@ -248,7 +248,7 @@ GRAPHITE = -fgraphite -fgraphite-identity -floop-interchange -ftree-loop-distrib
 HOSTCC       = gcc
 HOSTCXX      = g++
 HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -Ofast -fomit-frame-pointer -pipe -DNDEBUG -fgcse-las $(GRAPHITE)
-HOSTCXXFLAGS = -pipe -DNDEBUG -Ofast -fgcse-las -mcpu=cortex-a9 -marm -mfpu=neon -ftree-vectorize -mvectorize-with-neon-quad -funsafe-math-optimization $(GRAPHITE)
+HOSTCXXFLAGS = -pipe -DNDEBUG -Ofast -fgcse-las -mcpu=cortex-a9 -marm -mfpu=neon -ftree-vectorize -mvectorize-with-neon-quad -funsafe-math-optimizations $(GRAPHITE)
 
 # Decide whether to build built-in, modular, or both.
 # Normally, just do built-in.
@@ -349,7 +349,7 @@ CHECK		= sparse
 
 CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
 		  -Wbitwise -Wno-return-void $(CF)
-KERNELFLAGS	= -pipe -DNDEBUG -Ofast -fno-schedule-insns2 -ffast-math -mcpu=cortex-a9 -mfpu=neon -marm -mno-unaligned-access-ftree-vectorize -mvectorize-with-neon-quad -funsafe-math-optimization $(GRAPHITE)
+KERNELFLAGS	= -pipe -DNDEBUG -Ofast -fno-schedule-insns2 -ffast-math -mcpu=cortex-a9 -mfpu=neon -marm -mno-unaligned-access -ftree-vectorize -mvectorize-with-neon-quad -funsafe-math-optimizations $(GRAPHITE)
 MODFLAGS	= 	-DMODULE $(KERNELFLAGS)
 CFLAGS_MODULE   = $(MODFLAGS)
 AFLAGS_MODULE   = $(MODFLAGS)
