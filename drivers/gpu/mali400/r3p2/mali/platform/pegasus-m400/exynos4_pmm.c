@@ -70,8 +70,8 @@ typedef struct mali_dvfs_statusTag{
 mali_dvfs_status_t maliDvfsStatus;
 int mali_dvfs_control;
 
-int step0_clk = 160;
-int step0_vol = 875000;
+int step0_clk = 108;
+int step0_vol = 872500;
 int step1_clk = 266;
 int step1_vol = 900000;
 int step0_up = 70;
@@ -84,18 +84,18 @@ int step3_clk = 440;
 int step3_vol = 1025000;
 int step2_up = 90;
 int step3_down = 85;
-int step4_clk = 533;
-int step4_vol = 1075000;
+int step4_clk = 600;
+int step4_vol = 1102500;
 int step3_up = 90;
 int step4_down = 85;
 
 int gpu_voltage_default[MALI_DVFS_STEPS] = {
 #if defined(CONFIG_CPU_EXYNOS4212) || defined(CONFIG_CPU_EXYNOS4412)
-	875000,
+	872500,
 	900000,
 	950000,
 	1025000,
-	1075000
+	1102500
 #else
 	950000,
 	1050000,
@@ -145,11 +145,11 @@ mali_runtime_resume_table mali_runtime_resume = {160, 950000, 1}; /* step 1 */
 /* dvfs table */
 mali_dvfs_table mali_dvfs[MALI_DVFS_STEPS]={
 #if defined(CONFIG_CPU_EXYNOS4212) || defined(CONFIG_CPU_EXYNOS4412)
-			/* step 0 */{160  ,1000000	,875000	   , 0   , 70},
+			/* step 0 */{108  ,1000000	,872500	   , 0   , 70},
 			/* step 1 */{266  ,1000000	,900000	   ,62   , 90},
 			/* step 2 */{350  ,1000000	,950000	   ,85   , 90},
 			/* step 3 */{440  ,1000000	,1025000   ,85   , 90},
-			/* step 4 */{533  ,1000000	,1075000   ,85   ,100} };
+			/* step 4 */{600  ,1000000	,1102500   ,85   ,100} };
 #else
 			/* step 0 */{134  ,1000000	,950000    ,0   , 70},
 			/* step 1 */{267  ,1000000	,1050000   ,65   ,90},
