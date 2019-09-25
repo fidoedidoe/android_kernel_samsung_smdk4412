@@ -1,7 +1,7 @@
 VERSION = 3
 PATCHLEVEL = 0
 SUBLEVEL = 101
-EXTRAVERSION =
+EXTRAVERSION = linaro-7.4.1 
 NAME = Sodden Ben Lomond
 
 # *DOCUMENTATION*
@@ -243,10 +243,12 @@ CONFIG_SHELL := $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
 	  else if [ -x /bin/bash ]; then echo /bin/bash; \
 	  else echo sh; fi ; fi)
 
+GRAPHITE = -fgraphite -fgraphite-identity -floop-interchange -ftree-loop-distribution -floop-strip-mine -floop-block -ftree-loop-linear
+
 HOSTCC       = gcc
 HOSTCXX      = g++
-HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 -fomit-frame-pointer
-HOSTCXXFLAGS = -O2
+HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -Ofast -fomit-frame-pointer -pipe -DNDEBUG -fgcse-las $(GRAPHITE)
+HOSTCXXFLAGS = -pipe -DNDEBUG -Ofast -fgcse-las -mcpu=cortex-a9 -marm -mfpu=neon -ftree-vectorize -mvectorize-with-neon-quad -funsafe-math-optimizations $(GRAPHITE)
 
 # Decide whether to build built-in, modular, or both.
 # Normally, just do built-in.
@@ -347,11 +349,13 @@ CHECK		= sparse
 
 CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
 		  -Wbitwise -Wno-return-void $(CF)
-CFLAGS_MODULE   =
-AFLAGS_MODULE   =
+KERNELFLAGS	= -pipe -DNDEBUG -Ofast -fno-schedule-insns2 -ffast-math -mcpu=cortex-a9 -mfpu=neon -marm -mno-unaligned-access -ftree-vectorize -mvectorize-with-neon-quad -funsafe-math-optimizations $(GRAPHITE)
+MODFLAGS	= 	-DMODULE $(KERNELFLAGS)
+CFLAGS_MODULE   = $(MODFLAGS)
+AFLAGS_MODULE   = $(MODFLAGS)
 LDFLAGS_MODULE  =
-CFLAGS_KERNEL	=
-AFLAGS_KERNEL	=
+CFLAGS_KERNEL	= $(KERNELFLAGS) -fpredictive-commoning
+AFLAGS_KERNEL	= $(KERNELFLAGS)
 CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage
 
 
@@ -367,15 +371,19 @@ KBUILD_CPPFLAGS := -D__KERNEL__
 KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -fno-strict-aliasing -fno-common \
 		   -Werror-implicit-function-declaration \
-		   -Wno-format-security \
+		   -Wno-format-security -Wno-array-bounds \
 		   -fno-delete-null-pointer-checks \
-		   -mtune=cortex-a9 \
-		   -mlong-calls
+		   -fno-diagnostics-show-caret \
+		   -mlong-calls \
+                   $(KERNELFLAGS)
+
+KBUILD_AFLAGS_KERNEL := $(KERNELFLAGS)
+KBUILD_CFLAGS_KERNEL := $(KERNELFLAGS)
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
 KBUILD_AFLAGS   := -D__ASSEMBLY__
-KBUILD_AFLAGS_MODULE  := -DMODULE
-KBUILD_CFLAGS_MODULE  := -DMODULE
+KBUILD_AFLAGS_MODULE  := $(MODFLAGS)
+KBUILD_CFLAGS_MODULE  := $(MODFLAGS)
 KBUILD_LDFLAGS_MODULE := -T $(srctree)/scripts/module-common.lds
 
 # Read KERNELRELEASE from include/config/kernel.release (if it exists)
@@ -563,7 +571,7 @@ all: vmlinux
 ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
 KBUILD_CFLAGS	+= -Os
 else
-KBUILD_CFLAGS	+= -O2
+KBUILD_CFLAGS	+= -fmodulo-sched -fmodulo-sched-allow-regmoves -fno-tree-vectorize -fno-store-merging $(KERNELFLAGS)
 endif
 
 ifdef CONFIG_CC_CHECK_WARNING_STRICTLY
@@ -571,7 +579,8 @@ KBUILD_CFLAGS	+= -fdiagnostics-show-option -Werror \
 		   -Wno-error=unused-function \
 		   -Wno-error=unused-variable \
 		   -Wno-error=unused-value \
-		   -Wno-error=unused-label
+		   -Wno-error=unused-label \
+		   -Wno-error=unused
 endif
 
 include $(srctree)/arch/$(SRCARCH)/Makefile
