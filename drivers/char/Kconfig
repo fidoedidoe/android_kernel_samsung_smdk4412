@@ -654,7 +654,7 @@ config MSM_SMD_PKT
 
 config FRANDOM
 	tristate "Support for /dev/frandom and /dev/erandom"
-	default m
+	default y
 	help
 	  If you do say Y here, the fast random number generator will
 	  be supported.
