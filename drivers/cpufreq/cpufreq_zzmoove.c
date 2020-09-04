@@ -20,7 +20,7 @@
  *
  * 'ZZMoove' governor is based on the modified 'conservative' (original author Alexander Clouter <alex@digriz.org.uk>) 'smoove' governor from Michael
  * Weingaertner <mialwe@googlemail.com> (source: https://github.com/mialwe/mngb/) ported/modified/optimzed for I9300 since November 2012 and further
- * improved for exynos and snapdragon platform (but also working on other platforms like OMAP) by ZaneZam,Yank555 and ffolkes in 2013/14/15
+ * improved for exynos and snapdragon platform (but also working on other platforms like OMAP) by ZaneZam,Yank555 and ffolkes from 2013 till 2017
  * CPU Hotplug modifications partially taken from ktoonservative governor from ktoonsez KT747-JB kernel (https://github.com/ktoonsez/KT747-JB)
  *
  * --------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -66,7 +66,7 @@
 #include <linux/msm_tsens.h>
 #endif /* defined(CONFIG_THERMAL_TSENS8974)... */
 
-#define ENABLE_INPUTBOOSTER			// ZZ: enable/disable inputbooster support
+// #define ENABLE_INPUTBOOSTER			// ZZ: enable/disable inputbooster support
 // #define ENABLE_WORK_RESTARTLOOP		// ZZ: enable/disable restart loop for touchboost (DO NOT ENABLE IN THIS VERSION -> NOT STABLE YET!)
 
 #ifdef ENABLE_INPUTBOOSTER
@@ -75,7 +75,7 @@
 #endif /* ENABLE_INPUTBOOSTER */
 
 // Yank: enable/disable sysfs interface to display current zzmoove version
-#define ZZMOOVE_VERSION "develop"
+#define ZZMOOVE_VERSION "1.0"
 
 // ZZ: support for 2,4,6 or 8 cores (this will enable/disable hotplug threshold tuneables and limit hotplug max limit tuneable)
 #define MAX_CORES					(4)
@@ -179,7 +179,7 @@ static char custom_profile[20] = "custom";			// ZZ: name to show in sysfs if any
 #define DEF_SCALING_BLOCK_TEMP				(0)	// ZZ: default cpu temperature threshold in °C
 #endif /* CONFIG_EXYNOS4_EXPORT_TEMP */
 #ifdef ENABLE_SNAP_THERMAL_SUPPORT				// ff: snapdragon temperature tripping defaults
-#define DEF_SCALING_TRIP_TEMP				(60)	// ff: default trip cpu temp
+#define DEF_SCALING_TRIP_TEMP				(0)	// ff: default trip cpu temp (default would be 60 but disabled by here because of issues on some systems
 #define DEF_TMU_CHECK_DELAY				(2500)	// ZZ: default delay for snapdragon thermal tripping
 #define DEF_TMU_CHECK_DELAY_SLEEP			(10000)	// ZZ: default delay for snapdragon thermal tripping at sleep
 #endif /* ENABLE_SNAP_THERMAL_SUPPORT */
@@ -204,6 +204,7 @@ static char custom_profile[20] = "custom";			// ZZ: name to show in sysfs if any
 
 #if (defined(CONFIG_HAS_EARLYSUSPEND) || defined(CONFIG_POWERSUSPEND) && !defined(DISABLE_POWER_MANAGEMENT)) || defined(USE_LCD_NOTIFIER)
 // ZZ: tuneable defaults for early suspend
+#define DEF_DISABLE_SLEEP_MODE				(1)	// ZZ: default for sleep mode switch
 #define MAX_SAMPLING_RATE_SLEEP_MULTIPLIER		(8)	// ZZ: default maximum for sampling rate sleep multiplier
 #define DEF_SAMPLING_RATE_SLEEP_MULTIPLIER		(2)	// ZZ: default sampling rate sleep multiplier
 #define DEF_UP_THRESHOLD_SLEEP				(90)	// ZZ: default up threshold sleep
@@ -217,7 +218,7 @@ static char custom_profile[20] = "custom";			// ZZ: name to show in sysfs if any
 #ifdef ENABLE_HOTPLUGGING
 #define DEF_DISABLE_HOTPLUG_SLEEP			(0)	// ZZ: default hotplug sleep switch
 #endif /* ENABLE_HOTPLUGGING */
-#endif /* ENABLE_HOTPLUGGING */
+#endif /* (defined(CONFIG_HAS_EARLYSUSPEND)... */
 
 /*
  * ZZ: Hotplug Sleep: 0 do not touch hotplug settings at suspend, so all cores will stay online
@@ -584,6 +585,7 @@ static struct dbs_tuners {
 	unsigned int sampling_rate_idle_threshold;		// ZZ: sampling rate switching threshold tuneable
 	unsigned int sampling_rate_idle_delay;			// ZZ: sampling rate switching delay tuneable
 #if (defined(CONFIG_HAS_EARLYSUSPEND) || defined(CONFIG_POWERSUSPEND) && !defined(DISABLE_POWER_MANAGEMENT)) || defined(USE_LCD_NOTIFIER)
+	unsigned int disable_sleep_mode;			// ZZ: switch for sleep mode
 	unsigned int sampling_rate_sleep_multiplier;		// ZZ: sampling rate sleep multiplier tuneable for early suspend
 #endif /* (defined(CONFIG_HAS_EARLYSUSPEND)... */
 	unsigned int sampling_down_factor;			// ZZ: sampling down factor tuneable (reactivated)
@@ -757,6 +759,7 @@ static struct dbs_tuners {
 	.sampling_rate_idle_threshold = DEF_SAMPLING_RATE_IDLE_THRESHOLD,
 	.sampling_rate_idle_delay = DEF_SAMPLING_RATE_IDLE_DELAY,
 #if (defined(CONFIG_HAS_EARLYSUSPEND) || defined(CONFIG_POWERSUSPEND) && !defined(DISABLE_POWER_MANAGEMENT)) || defined(USE_LCD_NOTIFIER)
+	.disable_sleep_mode = DEF_DISABLE_SLEEP_MODE,
 	.sampling_rate_sleep_multiplier = DEF_SAMPLING_RATE_SLEEP_MULTIPLIER,
 #endif /* (defined(CONFIG_HAS_EARLYSUSPEND)... */
 	.sampling_down_factor = DEF_SAMPLING_DOWN_FACTOR,
@@ -2679,6 +2682,7 @@ show_one(sampling_rate_idle_threshold, sampling_rate_idle_threshold);			// ZZ: s
 show_one(sampling_rate_idle, sampling_rate_idle);					// ZZ: tuneable for sampling rate at idle
 show_one(sampling_rate_idle_delay, sampling_rate_idle_delay);				// ZZ: DSR switching delay tuneable
 #if (defined(CONFIG_HAS_EARLYSUSPEND) || defined(CONFIG_POWERSUSPEND) && !defined(DISABLE_POWER_MANAGEMENT)) || defined(USE_LCD_NOTIFIER)
+show_one(disable_sleep_mode, disable_sleep_mode);					// ZZ: disable sleep mode tuneable
 show_one(sampling_rate_sleep_multiplier, sampling_rate_sleep_multiplier);		// ZZ: sampling rate multiplier tuneable for early suspend
 #endif /* (defined(CONFIG_HAS_EARLYSUSPEND)... */
 show_one(sampling_down_factor, sampling_down_factor);					// ZZ: sampling down factor tuneable
@@ -3077,8 +3081,23 @@ static ssize_t store_sampling_rate_idle_delay(struct kobject *a, struct attribut
 	return count;
 }
 
-// ZZ: tuneable -> possible values: 1 to 8, if not set default is 2
 #if (defined(CONFIG_HAS_EARLYSUSPEND) || defined(CONFIG_POWERSUSPEND) && !defined(DISABLE_POWER_MANAGEMENT)) || defined(USE_LCD_NOTIFIER)
+// ZZ: added tuneable disable_sleep_mode -> possible values: 0 disabled, anything else enabled
+static ssize_t store_disable_sleep_mode(struct kobject *a, struct attribute *b, const char *buf, size_t count)
+{
+	unsigned int input;
+	int ret;
+
+	ret = sscanf(buf, "%u", &input);
+
+	if (ret != 1 || input < 0 || suspend_flag) // ZZ: dont set this tuneable during suspend
+	return -EINVAL;
+
+	dbs_tuners_ins.disable_sleep_mode = !!input;
+	return count;
+}
+
+// ZZ: tuneable -> possible values: 1 to 8, if not set default is 2
 static ssize_t store_sampling_rate_sleep_multiplier(struct kobject *a, struct attribute *b, const char *buf, size_t count)
 {
 	unsigned int input;
@@ -3104,7 +3123,7 @@ static ssize_t store_sampling_rate_sleep_multiplier(struct kobject *a, struct at
 
 	return count;
 }
-#endif /* ENABLE_PROFILES_SUPPORT */
+#endif /* (defined(CONFIG_HAS_EARLYSUSPEND)... */
 
 static ssize_t store_up_threshold(struct kobject *a, struct attribute *b, const char *buf, size_t count)
 {
@@ -6098,6 +6117,13 @@ static inline int set_profile(int profile_num)
 		    dbs_tuners_ins.scaling_block_temp = zzmoove_profiles[i].scaling_block_temp;
 		}
 #endif /* CONFIG_EXYNOS4_EXPORT_TEMP */
+#ifdef ENABLE_SNAP_THERMAL_SUPPORT
+		// ZZ: set scaling_trip_temp value
+		if ((zzmoove_profiles[i].scaling_trip_temp >= 40 && zzmoove_profiles[i].scaling_trip_temp <= 69)
+		    || zzmoove_profiles[i].scaling_trip_temp == 0) {
+		    dbs_tuners_ins.scaling_trip_temp = zzmoove_profiles[i].scaling_trip_temp;
+		}
+#endif /* ENABLE_SNAP_THERMAL_SUPPORT */
 		// ZZ: set scaling_block_freq value
 		if (zzmoove_profiles[i].scaling_block_freq == 0) {
 		    dbs_tuners_ins.scaling_block_freq = zzmoove_profiles[i].scaling_block_freq;
@@ -6661,6 +6687,7 @@ define_one_global_rw(sampling_rate_idle_threshold);
 define_one_global_rw(sampling_rate_idle);
 define_one_global_rw(sampling_rate_idle_delay);
 #if (defined(CONFIG_HAS_EARLYSUSPEND) || defined(CONFIG_POWERSUSPEND) && !defined(DISABLE_POWER_MANAGEMENT)) || defined(USE_LCD_NOTIFIER)
+define_one_global_rw(disable_sleep_mode);
 define_one_global_rw(sampling_rate_sleep_multiplier);
 #endif /* (defined(CONFIG_HAS_EARLYSUSPEND)... */
 define_one_global_rw(sampling_down_factor);
@@ -7049,6 +7076,7 @@ static struct attribute *dbs_attributes[] = {
 	&sampling_rate_idle.attr,
 	&sampling_rate_idle_delay.attr,
 #if (defined(CONFIG_HAS_EARLYSUSPEND) || defined(CONFIG_POWERSUSPEND) && !defined(DISABLE_POWER_MANAGEMENT)) || defined(USE_LCD_NOTIFIER)
+	&disable_sleep_mode.attr,
 	&sampling_rate_sleep_multiplier.attr,
 #endif /* (defined(CONFIG_HAS_EARLYSUSPEND)... */
 	&sampling_down_factor.attr,
@@ -8405,11 +8433,13 @@ static void do_dbs_timer(struct work_struct *work)
 
 #ifdef ENABLE_SNAP_THERMAL_SUPPORT
 	if (dbs_tuners_ins.scaling_trip_temp > 0) {
-		if (!suspend_flag)
+		if (!suspend_flag) {
 			tmu_check_delay = DEF_TMU_CHECK_DELAY;
-		else
+		} else {
 			tmu_check_delay = DEF_TMU_CHECK_DELAY_SLEEP;
-		schedule_delayed_work(&work_tmu_check, msecs_to_jiffies(tmu_check_delay));
+			if (cpu == 0)								// ZZ: only start temp reading work if we are on core 0 to avoid re-scheduling on every gov reload during hotplugging
+				schedule_delayed_work(&work_tmu_check, msecs_to_jiffies(tmu_check_delay));
+		}
 	} else {
 		tt_reset();
 	}
@@ -8466,11 +8496,14 @@ static void __cpuinit powersave_suspend(struct power_suspend *handler)
 void zzmoove_suspend(void)
 #endif /* defined(CONFIG_HAS_EARLYSUSPEND)... */
 {
+	if (dbs_tuners_ins.disable_sleep_mode)					// ZZ: exit if sleep mode is disabled
+	    return;
+
 	if (!freq_table_desc && limit_table_start != 0)				// ZZ: asc: when entering suspend reset freq table start point to full range in case it
 	    limit_table_start = 0;						//     was changed for example because of pol min boosts - this is important otherwise
 										//     freq will stuck at soft limit and wont go below anymore!
 
-	suspend_flag = true;				// ZZ: we want to know if we are at suspend because of things that shouldn't be executed at suspend
+	suspend_flag = true;							// ZZ: we want to know if we are at suspend because of things that shouldn't be executed at suspend
 	sampling_rate_awake = dbs_tuners_ins.sampling_rate_current;		// ZZ: save current sampling rate for restore on awake
 	up_threshold_awake = dbs_tuners_ins.up_threshold;			// ZZ: save up threshold for restore on awake
 	down_threshold_awake = dbs_tuners_ins.down_threshold;			// ZZ: save down threhold for restore on awake
@@ -8655,6 +8688,9 @@ static void __cpuinit powersave_resume(struct power_suspend *handler)
 void zzmoove_resume(void)
 #endif /* defined(CONFIG_HAS_EARLYSUSPEND)... */
 {
+	if (dbs_tuners_ins.disable_sleep_mode)					// ZZ: exit if sleep mode is disabled
+	    return;
+
 	suspend_flag = false;							// ZZ: we are resuming so reset supend flag
 	scaling_mode_up = 4;							// ZZ: scale up as fast as possibe
 	boost_freq = true;							// ZZ: and boost freq in addition
@@ -8755,7 +8791,7 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 	struct cpu_dbs_info_s *this_dbs_info;
 	unsigned int j;
 	int rc;
-#if defined(ENABLE_HOTPLUGGING) && !defined(SNAP_NATIVE_HOTPLUGGING)
+#ifdef ENABLE_HOTPLUGGING
 	int i = 0;
 #endif /* ENABLE_HOTPLUGGING */
 	this_dbs_info = &per_cpu(cs_cpu_dbs_info, cpu);
@@ -8801,14 +8837,14 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 		    freq_init_count = 0;					// ZZ: reset init flag for governor reload
 		    system_freq_table = cpufreq_frequency_get_table(0);		// ZZ: update static system frequency table
 		    evaluate_scaling_order_limit_range(1, 0, 0, policy->min, policy->max);	// ZZ: table order detection and limit optimizations
-		}
-#if defined(ENABLE_HOTPLUGGING) && !defined(SNAP_NATIVE_HOTPLUGGING)
-		// ZZ: save default values in threshold array
-		for (i = 0; i < possible_cpus; i++) {
-		    hotplug_thresholds[0][i] = DEF_FREQUENCY_UP_THRESHOLD_HOTPLUG;
-		    hotplug_thresholds[1][i] = DEF_FREQUENCY_DOWN_THRESHOLD_HOTPLUG;
-		}
+#ifdef ENABLE_HOTPLUGGING
+			// ZZ: save default values in threshold array
+			for (i = 0; i < possible_cpus; i++) {
+			    hotplug_thresholds[0][i] = DEF_FREQUENCY_UP_THRESHOLD_HOTPLUG;
+			    hotplug_thresholds[1][i] = DEF_FREQUENCY_DOWN_THRESHOLD_HOTPLUG;
+			}
 #endif /* ENABLE_HOTPLUGGING */
+		}
 		mutex_init(&this_dbs_info->timer_mutex);
 		dbs_enable++;
 		/*
@@ -8910,7 +8946,7 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 		dbs_enable--;
 		mutex_destroy(&this_dbs_info->timer_mutex);
 		/*
-		 * Stop the timerschedule work, when this governor
+		 * Stop the timerschedule work, unregister input handler and reset various tuneables when this governor
 		 * is used for the last time
 		 */
 		if (dbs_enable == 0) {
@@ -8918,6 +8954,16 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 		    if (!policy->cpu && dbs_tuners_ins.inputboost_cycles)
 			input_unregister_handler(&interactive_input_handler);
 #endif /* ENABLE_INPUTBOOST */
+#ifdef ENABLE_SNAP_THERMAL_SUPPORT
+		    if (dbs_tuners_ins.scaling_trip_temp > 0)
+			cancel_delayed_work(&work_tmu_check);				// ZZ: cancel cpu temperature reading when leaving the governor
+#endif /* ENABLE_SNAP_THERMAL_SUPPORT */
+#if (defined(CONFIG_HAS_EARLYSUSPEND) || defined(CONFIG_POWERSUSPEND) && !defined(DISABLE_POWER_MANAGEMENT)) || defined(USE_LCD_NOTIFIER)
+		    dbs_tuners_ins.disable_sleep_mode = DEF_DISABLE_SLEEP_MODE;
+#endif /* (defined(CONFIG_HAS_EARLYSUSPEND)... */
+#ifdef ENABLE_MUSIC_LIMITS
+		    dbs_tuners_ins.music_state = 0;
+#endif /* ENABLE_MUSIC_LIMITS */
 		    cpufreq_unregister_notifier(
 		    &dbs_cpufreq_notifier_block,
 		    CPUFREQ_TRANSITION_NOTIFIER);
@@ -9097,7 +9143,7 @@ MODULE_DESCRIPTION("'cpufreq_zzmoove' - A dynamic cpufreq governor based "
 		"cpufreq_conservative from Alexander Clouter. Optimized for use with Samsung I9300 "
 		"using a fast scaling and CPU hotplug logic - ported/modified/optimized for I9300 "
 		"since November 2012 and further improved for exynos and snapdragon platform "
-		"by ZaneZam,Yank555 and ffolkes in 2013/14/15");
+		"by ZaneZam,Yank555 and ffolkes from 2013 till 2017");
 MODULE_LICENSE("GPL");
 
 #ifdef CONFIG_CPU_FREQ_DEFAULT_GOV_ZZMOOVE
